@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handleSummarize = exports.handleGrammarCheck = void 0;
-const geminiService_1 = require("../services/geminiService");
+const aiService_1 = require("../services/aiService");
 const handleGrammarCheck = async (req, res) => {
     try {
         const { text } = req.body;
@@ -9,7 +9,7 @@ const handleGrammarCheck = async (req, res) => {
             res.status(400).json({ message: 'Text is required' });
             return;
         }
-        const correctedText = await (0, geminiService_1.checkGrammar)(text);
+        const correctedText = await (0, aiService_1.checkGrammar)(text);
         res.json({ correctedText });
     }
     catch (error) {
@@ -24,7 +24,7 @@ const handleSummarize = async (req, res) => {
             res.status(400).json({ message: 'Text is required' });
             return;
         }
-        const summary = await (0, geminiService_1.summarizeText)(text);
+        const summary = await (0, aiService_1.summarizeText)(text);
         res.json({ summary });
     }
     catch (error) {

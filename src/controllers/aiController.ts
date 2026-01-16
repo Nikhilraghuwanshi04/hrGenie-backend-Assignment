@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { checkGrammar, summarizeText } from '../services/geminiService';
+import { checkGrammar, summarizeText } from '../services/aiService';
 
 export const handleGrammarCheck = async (req: Request, res: Response): Promise<void> => {
     try {

@@ -1,16 +1,41 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+const users = [];
+// Helper functions for Presence
+const addUser = (id, documentId, userId, username) => {
+    const existingUser = users.find((user) => user.id === id);
+    if (existingUser)
+        return existingUser;
+    const user = { id, documentId, userId, username: username || 'Anonymous' };
+    users.push(user);
+    return user;
+};
+const removeUser = (id) => {
+    const index = users.findIndex((user) => user.id === id);
+    if (index !== -1) {
+        return users.splice(index, 1)[0];
+    }
+};
+const getUsersInRoom = (documentId) => {
+    return users.filter((user) => user.documentId === documentId);
+};
 const socketService = (io) => {
     io.on('connection', (socket) => {
-        console.log(`User connected: ${socket.id}`);
+        // console.log(`User connected: ${socket.id}`);
         // Join a document room
-        socket.on('join-document', (documentId) => {
-            socket.join(documentId);
-            console.log(`User ${socket.id} joined document ${documentId}`);
+        socket.on('join-document', (documentId, username, userId) => {
+            const user = addUser(socket.id, documentId, userId || 'unknown', username);
+            socket.join(user.documentId);
+            // Broadcast to room that a user joined
+            // console.log(`${user.username} joined document ${user.documentId}`);
+            // Send updated list of users in this room to ALL users in room
+            io.to(user.documentId).emit('room-users', {
+                room: user.documentId,
+                users: getUsersInRoom(user.documentId)
+            });
         });
         // Handle sending changes
         socket.on('send-changes', (delta, documentId) => {
-            // Broadcast changes to everyone else in the room
             socket.to(documentId).emit('receive-changes', delta);
         });
         // Handle cursor position
@@ -20,10 +45,7 @@ const socketService = (io) => {
         // Handle saving document (triggered by client, or we save periodic)
         socket.on('save-document', async (data) => {
             const { documentId, content } = data;
-            // Assuming we have a way to access the model or controller
-            // We should ideally import Doc model here
             try {
-                // Dynamic import or moved import to top
                 const Doc = require('../models/Document').default;
                 await Doc.findByIdAndUpdate(documentId, { data: content });
                 socket.emit('document-saved', { status: 'success' });
@@ -34,7 +56,14 @@ const socketService = (io) => {
             }
         });
         socket.on('disconnect', () => {
-            console.log('User disconnected:', socket.id);
+            const user = removeUser(socket.id);
+            if (user) {
+                // console.log(`${user.username} left document ${user.documentId}`);
+                io.to(user.documentId).emit('room-users', {
+                    room: user.documentId,
+                    users: getUsersInRoom(user.documentId)
+                });
+            }
         });
     });
 };
